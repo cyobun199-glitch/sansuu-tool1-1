@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>かけ算・わり算 みてわかるツール</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ten:#F5A623; --ten-light:#FFF3DC;
+    --one:#3FA7D6; --one-light:#E4F4FB;
+    --hyaku:#E2574C;
+    --green:#5BAE6C; --green-light:#EAF6EC;
+    --ink:#3A3A3A; --line:#C9C9C9; --bg:#FDFBF7;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--ink);
+    font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif; }
+  .app{ max-width:840px; margin:0 auto; padding:14px 12px 40px; }
+  h1{ font-size:21px; font-weight:900; text-align:center; margin:6px 0 12px; letter-spacing:.05em; }
+  h1 .m1{ color:var(--ten); } h1 .m2{ color:var(--one); }
+
+  .tabs{ display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+  .tab-btn{ flex:1; min-width:120px; border:2px solid var(--line); background:#fff; border-radius:12px;
+    padding:10px 4px; font-family:inherit; font-size:14px; font-weight:900; cursor:pointer; color:#888; }
+  .tab-btn.active{ border-color:var(--ten); background:var(--ten-light); color:#B4770A; }
+  .panel{ display:none; background:#fff; border:2px solid #E5E0D5; border-radius:14px; padding:16px; }
+  .panel.active{ display:block; }
+
+  .row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .num-in{ width:82px; font-family:inherit; font-size:20px; font-weight:900; text-align:center;
+    padding:6px; border:2px solid var(--line); border-radius:10px; }
+  .btn{ font-family:inherit; font-size:14px; font-weight:900; padding:9px 16px; border-radius:10px;
+    border:2px solid var(--ink); background:#fff; cursor:pointer; }
+  .btn.primary{ background:var(--ten); border-color:var(--ten); color:#fff; }
+  .btn.blue{ background:var(--one); border-color:var(--one); color:#fff; }
+  .btn.green{ background:var(--green); border-color:var(--green); color:#fff; }
+  .btn.small{ font-size:12.5px; padding:6px 10px; }
+  .preset{ border:1.5px dashed var(--line); background:#FAFAFA; }
+  .op{ font-size:20px; font-weight:900; }
+
+  .guide{ background:var(--green-light); border:2px solid var(--green); border-radius:12px;
+    padding:10px 14px; font-size:15px; font-weight:700; line-height:1.7; margin:10px 0; min-height:56px; }
+  .step-nav{ display:flex; gap:8px; align-items:center; justify-content:center; margin:8px 0; }
+  .step-dots{ font-size:13px; font-weight:900; color:#999; }
+
+  .stage{ display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start; }
+  .stage .visual{ flex:1.6; min-width:300px; }
+  .stage .hissan-wrap{ flex:1; min-width:180px; }
+  .hissan{ font-family:"Menlo","Consolas",monospace; font-size:24px; line-height:1.35; background:#FAFAF5;
+    border:2px solid var(--line); border-radius:12px; padding:12px 14px; white-space:pre; min-height:120px; }
+  .hissan-title{ font-size:13px; font-weight:900; color:#888; margin-bottom:4px; }
+
+  /* わり算ブロック */
+  .tray-box,.group-box{ border:2px solid var(--line); border-radius:12px; padding:8px; }
+  .tray-box{ background:#FAFAF5; margin-bottom:10px; }
+  .tray-label,.g-label{ font-size:12px; font-weight:900; color:#888; margin-bottom:4px; }
+  .g-count{ font-size:11px; font-weight:700; color:#4A8FB5; min-height:15px; margin-top:3px; }
+  .groups{ display:flex; gap:8px; flex-wrap:wrap; }
+  .group-box{ flex:1; min-width:92px; background:#fff; }
+  .blocks{ display:flex; flex-wrap:wrap; gap:3px; align-items:flex-end; min-height:58px; border-radius:8px; padding:2px; }
+  .group-box .blocks{ min-height:84px; }
+
+  .blk{ touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; }
+  .blk.locked{ opacity:.35; cursor:default; }
+  .blk.ghost{ opacity:.2; }
+  .drag-clone{ position:fixed; z-index:999; pointer-events:none; transform:scale(1.2) rotate(-5deg);
+    filter:drop-shadow(0 4px 6px rgba(0,0,0,.25)); }
+  .blocks.over{ outline:3px dashed var(--one); outline-offset:1px; background:var(--one-light); }
+
+  .flat{ width:42px; height:42px; background:var(--hyaku); border:1.5px solid #B23A31; border-radius:5px;
+    color:#fff; font-size:11px; font-weight:900; display:flex; align-items:center; justify-content:center; }
+  .rod{ width:16px; height:50px; background:var(--ten); border:1.5px solid #C7860F; border-radius:4px;
+    color:#fff; font-size:9px; font-weight:900; display:flex; align-items:flex-end; justify-content:center; padding-bottom:2px; }
+  .cube{ width:14px; height:14px; background:var(--one); border:1.5px solid #2B85AD; border-radius:3px; }
+  .blocks.dense .flat{ width:30px; height:30px; font-size:9px; }
+  .blocks.dense .rod{ width:12px; height:36px; font-size:0; }
+  .blocks.dense .cube{ width:11px; height:11px; }
+  .amari .cube{ background:#EF6F6C; border-color:#C24E4B; }
+  .answer-banner{ margin-top:10px; background:var(--ten-light); border:2px solid var(--ten); border-radius:12px;
+    padding:10px; font-size:18px; font-weight:900; text-align:center; color:#B4770A; display:none; }
+
+  .q-big{ font-size:38px; font-weight:900; text-align:center; margin:14px 0; letter-spacing:.05em; }
+  .ans-row{ display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; }
+  .feedback{ text-align:center; font-size:20px; font-weight:900; min-height:34px; margin-top:10px; }
+  .feedback.good{ color:var(--green); } .feedback.retry{ color:#EF6F6C; }
+  .stars{ text-align:center; font-size:15px; font-weight:700; color:#B4770A; margin-top:4px; }
+
+  select{ font-family:inherit; font-size:14px; font-weight:700; padding:7px; border:2px solid var(--line); border-radius:10px; }
+  .note{ font-size:12.5px; color:#777; line-height:1.7; margin-top:8px; }
+
+  #printArea{ display:none; }
+  @media print{
+    body{ background:#fff; }
+    .app{ display:none !important; }
+    #printArea{ display:block; }
+    @page{ size:A4 portrait; margin:12mm; }
+  }
+  .p-sheet{ width:186mm; margin:0 auto; font-family:"Zen Maru Gothic",sans-serif; }
+  .p-head{ display:flex; align-items:baseline; gap:8mm; border-bottom:2.5px solid var(--ink); padding-bottom:2mm; margin-bottom:5mm; }
+  .p-head h2{ font-size:16px; font-weight:900; }
+  .p-head .p-meta{ margin-left:auto; font-size:11px; font-weight:700; }
+  .p-blank{ display:inline-block; border-bottom:1.2px solid var(--ink); min-width:22mm; }
+  .p-grid{ display:grid; grid-template-columns:1fr 1fr; gap:5mm 8mm; }
+  .p-q{ font-size:14px; font-weight:700; }
+  .p-q .p-no{ display:inline-block; width:7mm; font-weight:900; color:#888; }
+  .p-work{ border:1px solid #CCC; border-radius:3mm; height:32mm; margin-top:1.5mm; }
+  .p-break{ page-break-before:always; }
+  .p-ans{ font-size:12.5px; font-weight:700; line-height:2.1; column-count:2; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1><span class="m1">かけ算</span>・<span class="m2">わり算</span> みてわかるツール</h1>
+  <div class="tabs">
+    <button class="tab-btn active" data-p="pMult">かけ算を 見る</button>
+    <button class="tab-btn" data-p="pDiv">わり算を やってみる</button>
+    <button class="tab-btn" data-p="pPractice">れんしゅう</button>
+    <button class="tab-btn" data-p="pPrint">プリントを作る</button>
+  </div>
+
+  <!-- かけ算 -->
+  <div class="panel active" id="pMult">
+    <div class="row">
+      <input class="num-in" id="mA" type="number" value="23" min="10" max="999">
+      <span class="op">×</span>
+      <input class="num-in" id="mB" type="number" value="4" min="2" max="99">
+      <button class="btn primary" id="mGo">この数で 見る</button>
+      <button class="btn small preset" data-ma="23" data-mb="4">23×4</button>
+      <button class="btn small preset" data-ma="37" data-mb="24">37×24</button>
+      <button class="btn small preset" data-ma="236" data-mb="7">236×7</button>
+      <button class="btn small preset" data-ma="314" data-mb="26">314×26</button>
+    </div>
+    <div class="guide" id="mGuide"></div>
+    <div class="step-nav">
+      <button class="btn" id="mPrev">← もどる</button>
+      <span class="step-dots" id="mDots"></span>
+      <button class="btn blue" id="mNext">つぎへ →</button>
+    </div>
+    <div class="stage">
+      <div class="visual"><svg id="mSvg" width="100%" viewBox="0 0 580 370" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="hissan-wrap"><div class="hissan-title">筆算（ひっさん）</div><div class="hissan" id="mHissan"> </div></div>
+    </div>
+    <div class="answer-banner" id="mAns"></div>
+  </div>
+
+  <!-- わり算（ドラッグ操作） -->
+  <div class="panel" id="pDiv">
+    <div class="row">
+      <input class="num-in" id="dD" type="number" value="72" min="10" max="999">
+      <span class="op">÷</span>
+      <input class="num-in" id="dV" type="number" value="3" min="2" max="9">
+      <button class="btn primary" id="dGo">この数で はじめる</button>
+      <button class="btn small preset" data-dd="72" data-dv="3">72÷3</button>
+      <button class="btn small preset" data-dd="85" data-dv="4">85÷4（あまり）</button>
+      <button class="btn small preset" data-dd="456" data-dv="3">456÷3</button>
+      <button class="btn small preset" data-dd="629" data-dv="4">629÷4（あまり）</button>
+    </div>
+    <div class="guide" id="dGuide"></div>
+    <div class="row" style="justify-content:center">
+      <button class="btn blue" id="dDeal">⚡ みんなに 1こずつ くばる</button>
+      <button class="btn green" id="dPhase" style="display:none">ばらす</button>
+      <button class="btn small" id="dReset">🔄 さいしょから</button>
+    </div>
+    <div class="stage">
+      <div class="visual">
+        <div class="tray-box"><div class="tray-label" id="trayLabel"></div><div class="blocks" data-zone="tray" id="tray"></div></div>
+        <div class="groups" id="groups"></div>
+      </div>
+      <div class="hissan-wrap"><div class="hissan-title">筆算（ひっさん）</div><div class="hissan" id="dHissan"> </div></div>
+    </div>
+    <div class="answer-banner" id="dAns"></div>
+  </div>
+
+  <!-- れんしゅう -->
+  <div class="panel" id="pPractice">
+    <div class="row">
+      <span style="font-weight:900">もんだいの しゅるい：</span>
+      <select id="prType">
+        <option value="m1">かけ算（2けた × 1けた）</option>
+        <option value="m2">かけ算（2けた × 2けた）</option>
+        <option value="m3">かけ算（3けた × 1けた）</option>
+        <option value="m4">かけ算（3けた × 2けた）</option>
+        <option value="d0">わり算 2けた÷1けた（わりきれる）</option>
+        <option value="d1">わり算 2けた÷1けた（あまりあり）</option>
+        <option value="d2">わり算 3けた÷1けた（わりきれる）</option>
+        <option value="d3">わり算 3けた÷1けた（あまりあり）</option>
+      </select>
+      <button class="btn primary" id="prNew">もんだいを 出す</button>
+    </div>
+    <div class="q-big" id="prQ">ボタンを おしてね</div>
+    <div class="ans-row" id="prAnsRow" style="display:none">
+      <span style="font-weight:900">こたえ</span>
+      <input class="num-in" id="prA1" type="number">
+      <span id="prAmariWrap" style="display:none; font-weight:900">あまり <input class="num-in" id="prA2" type="number" value="0"></span>
+      <button class="btn blue" id="prCheck">こたえあわせ</button>
+      <button class="btn small" id="prShow">図で やってみる</button>
+    </div>
+    <div class="feedback" id="prFb"></div>
+    <div class="stars" id="prStars"></div>
+  </div>
+
+  <!-- プリント -->
+  <div class="panel" id="pPrint">
+    <div class="row">
+      <span style="font-weight:900">しゅるい：</span>
+      <select id="ppType">
+        <option value="m1">かけ算（2けた×1けた）</option>
+        <option value="m2">かけ算（2けた×2けた）</option>
+        <option value="m3">かけ算（3けた×1けた）</option>
+        <option value="m4">かけ算（3けた×2けた）</option>
+        <option value="d0">わり算 2けた÷1けた（わりきれる）</option>
+        <option value="d1">わり算 2けた÷1けた（あまりあり）</option>
+        <option value="d2">わり算 3けた÷1けた（わりきれる）</option>
+        <option value="d3">わり算 3けた÷1けた（あまりあり）</option>
+        <option value="mix2">ミックス（2けたの かけ算・わり算）</option>
+        <option value="mix3">ミックス（3けたの かけ算・わり算）</option>
+      </select>
+      <span style="font-weight:900">もんだい数：</span>
+      <select id="ppCount"><option>10</option><option>12</option><option>16</option></select>
+      <button class="btn primary" id="ppMake">プリントを作って 印刷</button>
+    </div>
+    <div class="note">・筆算を書くためのスペース(わく)つきで作られます。<br>・2ページ目に「こたえ」がつきます。答え合わせ用に、こたえのページだけ別に持っておくのがおすすめです。<br>・同じ設定でも毎回ちがう問題が作られます。</div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+"use strict";
+const $ = (id)=>document.getElementById(id);
+
+/* ---------- タブ ---------- */
+document.querySelectorAll(".tab-btn").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll(".tab-btn").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    $(b.dataset.p).classList.add("active");
+  });
+});
+
+/* ---------- かけ算（面積図） ---------- */
+const mult = { a:23, b:4, step:0, maxStep:3 };
+
+function multParts(n){
+  if(n>=100){
+    const h=Math.floor(n/100)*100, t=Math.floor((n%100)/10)*10, o=n%10;
+    return [{v:h},{v:t},{v:o}].filter(p=>p.v>0);
+  }
+  if(n>=10){
+    const t=Math.floor(n/10)*10, o=n%10;
+    return [{v:t},{v:o}].filter(p=>p.v>0);
+  }
+  return [{v:n}];
+}
+function scaleSizes(parts,total){
+  const sum = parts.reduce((s,p)=>s+p.v,0);
+  const min = 76, rest = Math.max(0,total - min*parts.length);
+  return parts.map(p=>min + rest*(p.v/sum));
+}
+const colA=["#FFE1B8","#CFE9F7","#D9F0DC"], colB=["#FFF1DC","#E9F6FD","#EDF8EE"];
+function cellColor(i,j){ return (j%2===0?colA:colB)[Math.min(i,2)]; }
+
+function multRender(){
+  const a=mult.a, b=mult.b, s=mult.step;
+  const pa=multParts(a), pb=multParts(b);
+  const W=440, H=250, ox=100, oy=60;
+  const ws=scaleSizes(pa,W), hs=scaleSizes(pb,H);
+  let svg="";
+  svg+=`<rect x="${ox}" y="${oy}" width="${W}" height="${H}" fill="#fff" stroke="#3A3A3A" stroke-width="3" rx="4"/>`;
+  svg+=`<text x="${ox+W/2}" y="${oy-34}" text-anchor="middle" font-size="22" font-weight="900">よこ ${a}</text>`;
+  svg+=`<text x="${ox-64}" y="${oy+H/2}" text-anchor="middle" font-size="22" font-weight="900" transform="rotate(-90 ${ox-64} ${oy+H/2})">たて ${b}</text>`;
+  if(s>=1){
+    let y=oy;
+    pb.forEach((p,j)=>{
+      let x=ox;
+      pa.forEach((q,i)=>{
+        svg+=`<rect x="${x+2}" y="${y+2}" width="${ws[i]-4}" height="${hs[j]-4}" fill="${cellColor(i,j)}" opacity="0.9"/>`;
+        if(s>=2){
+          const fs = pa.length>=3 ? 14 : 17;
+          svg+=`<text x="${x+ws[i]/2}" y="${y+hs[j]/2-4}" text-anchor="middle" font-size="${fs}" font-weight="700">${q.v}×${p.v}</text>`;
+          svg+=`<text x="${x+ws[i]/2}" y="${y+hs[j]/2+18}" text-anchor="middle" font-size="${fs+3}" font-weight="900">=${q.v*p.v}</text>`;
+        }
+        x+=ws[i];
+      });
+      y+=hs[j];
+    });
+    svg+=`<rect x="${ox}" y="${oy}" width="${W}" height="${H}" fill="none" stroke="#3A3A3A" stroke-width="3" rx="4"/>`;
+    let x2=ox;
+    pa.forEach((q,i)=>{
+      svg+=`<text x="${x2+ws[i]/2}" y="${oy-12}" text-anchor="middle" font-size="18" font-weight="900" fill="#C7860F">${q.v}</text>`;
+      x2+=ws[i];
+      if(i<pa.length-1) svg+=`<line x1="${x2}" y1="${oy}" x2="${x2}" y2="${oy+H}" stroke="#3A3A3A" stroke-width="2" stroke-dasharray="7 5"/>`;
+    });
+    let y2=oy;
+    pb.forEach((p,j)=>{
+      svg+=`<text x="${ox-24}" y="${y2+hs[j]/2+7}" text-anchor="middle" font-size="18" font-weight="900" fill="#2B85AD">${p.v}</text>`;
+      y2+=hs[j];
+      if(j<pb.length-1) svg+=`<line x1="${ox}" y1="${y2}" x2="${ox+W}" y2="${y2}" stroke="#3A3A3A" stroke-width="2" stroke-dasharray="7 5"/>`;
+    });
+  }
+  if(s>=3){
+    const prods=[]; pb.forEach(p=>pa.forEach(q=>prods.push(q.v*p.v)));
+    const eq = prods.join("+")+"="+(a*b);
+    const fs = eq.length>30 ? 16 : 20;
+    svg+=`<text x="${ox+W/2}" y="${oy+H+40}" text-anchor="middle" font-size="${fs}" font-weight="900" fill="#2E7A40">${eq}</text>`;
+  }
+  $("mSvg").innerHTML=svg;
+
+  const nRooms = pa.length*pb.length;
+  const guides=[
+    `${a} × ${b} は、「たて ${b}・よこ ${a} の長方形の広さ」と おなじだよ。この形で考えてみよう。`,
+    `よこの ${a} を くらいごとに分けるよ${b>=10?`。たての ${b} も分けるよ`:""}。大きい数は「分ける」と かんたんになる！ 部屋は ${nRooms}こに 分かれたね。`,
+    `分けた部屋ごとに かけ算するよ。どの部屋も 九九と 10や100のかけ算で できるね。`,
+    `部屋のこたえを ぜんぶ たすと…… ${a} × ${b} = ${a*b}！ 筆算も 同じことを しているんだよ。`
+  ];
+  $("mGuide").textContent = "ステップ" + (s+1) + "：" + guides[s];
+  $("mDots").textContent = (s+1) + " / 4";
+
+  let h=" ";
+  if(s>=3){
+    const W2 = Math.max(String(a*b).length, String(a).length, String(b).length+1)+2;
+    const P=(n,w)=>String(n).padStart(w," ");
+    if(b<10){
+      h = P(a,W2)+"\n×"+P(b,W2-1)+"\n"+"─".repeat(W2)+"\n"+P(a*b,W2);
+    }else{
+      const p1=a*(b%10), p2=a*Math.floor(b/10);
+      h = P(a,W2)+"\n×"+P(b,W2-1)+"\n"+"─".repeat(W2)+"\n"+P(p1,W2)+"\n"+P(p2,W2-1)+" \n"+"─".repeat(W2)+"\n"+P(a*b,W2);
+    }
+  }
+  $("mHissan").textContent=h;
+  const ab=$("mAns");
+  if(s>=3){ ab.style.display="block"; ab.textContent=`こたえ： ${a} × ${b} = ${a*b} 🎉`; }
+  else ab.style.display="none";
+}
+function multSet(a,b){
+  a=Math.min(999,Math.max(10,Math.floor(a)||23));
+  b=Math.min(99,Math.max(2,Math.floor(b)||4));
+  mult.a=a; mult.b=b; mult.step=0;
+  $("mA").value=a; $("mB").value=b;
+  multRender();
+}
+$("mGo").addEventListener("click",()=>multSet(+$("mA").value,+$("mB").value));
+$("mNext").addEventListener("click",()=>{ if(mult.step<mult.maxStep){mult.step++; multRender();} });
+$("mPrev").addEventListener("click",()=>{ if(mult.step>0){mult.step--; multRender();} });
+document.querySelectorAll("[data-ma]").forEach(b=>b.addEventListener("click",()=>multSet(+b.dataset.ma,+b.dataset.mb)));
+
+/* ==================================================
+   わり算：ブロックを自分でくばる（ドラッグ操作）
+   ================================================== */
+const UNIT_TYPES3=["flat","rod","cube"], UNIT_TYPES2=["rod","cube"];
+
+function computeDiv(d,v){
+  const ds=String(d).split("").map(Number), L=ds.length;
+  const qd=[],sub=[],remA=[];
+  let rem=0;
+  for(let i=0;i<L;i++){ const cur=rem*10+ds[i]; qd[i]=Math.floor(cur/v); sub[i]=qd[i]*v; rem=cur-sub[i]; remA[i]=rem; }
+  let f=0; while(f<L-1 && qd[f]===0) f++;
+  return {ds,L,qd,sub,remA,f,r:rem,q:parseInt(qd.join(""),10)};
+}
+function divHissanTxt(M,v,revealPlace,broughtUpTo){
+  const {ds,L,qd,sub,remA,f}=M;
+  const lines=[];
+  let qs="";
+  for(let i=0;i<L;i++) qs += (i<f? " " : (revealPlace>=i? String(qd[i]) : " "));
+  lines.push("  "+qs);
+  lines.push(v+")"+ds.join(""));
+  for(let i=f;i<=revealPlace && i<L;i++){
+    if(qd[i]===0) continue;
+    lines.push(String(sub[i]).padStart(i+3," "));
+    lines.push("  "+"─".repeat(L));
+    let diff=String(remA[i]).padStart(i+3," ");
+    let j=i+1;
+    while(j<=broughtUpTo && j<L){
+      diff+=String(ds[j]);
+      if(qd[j]!==0) break;
+      j++;
+    }
+    lines.push(diff);
+  }
+  return lines.join("\n");
+}
+
+const dv = { d:72, v:3, M:null, phase:0, brought:0, finished:false, units:UNIT_TYPES2 };
+const UNIT_LABEL={flat:"100のシート",rod:"10のたば",cube:"1"};
+const UNIT_VALUE={flat:100,rod:10,cube:1};
+
+function makeBlk(type){
+  const e=document.createElement("div");
+  e.className="blk "+type;
+  if(type==="flat") e.textContent="100";
+  else if(type==="rod") e.textContent="10";
+  return e;
+}
+function addBlks(zone,type,n){ for(let i=0;i<n;i++) zone.appendChild(makeBlk(type)); }
+function countIn(zone,type){ return zone.querySelectorAll("."+type).length; }
+function groupZones(){ return Array.from(document.querySelectorAll('#groups [data-zone="group"]')); }
+
+function divSet(d,v){
+  d=Math.min(999,Math.max(10,Math.floor(d)||72));
+  v=Math.min(9,Math.max(2,Math.floor(v)||3));
+  dv.d=d; dv.v=v; dv.M=computeDiv(d,v);
+  dv.units = dv.M.L===3 ? UNIT_TYPES3 : UNIT_TYPES2;
+  dv.phase=0; dv.brought=0; dv.finished=false;
+  $("dD").value=d; $("dV").value=v;
+
+  const tray=$("tray"); tray.innerHTML="";
+  dv.units.forEach((u,i)=>addBlks(tray,u,dv.M.ds[i]));
+
+  const gw=$("groups"); gw.innerHTML="";
+  for(let k=0;k<v;k++){
+    const g=document.createElement("div"); g.className="group-box";
+    g.innerHTML=`<div class="g-label">${k+1}人め</div><div class="blocks" data-zone="group"></div><div class="g-count"></div>`;
+    gw.appendChild(g);
+  }
+  $("dAns").style.display="none";
+  divUpdate();
+}
+
+function divUpdate(){
+  const M=dv.M, v=dv.v, tray=$("tray"), gzs=groupZones();
+  const p=dv.phase, unit=dv.units[p];
+  const trayN=countIn(tray,unit);
+  const gArr=gzs.map(z=>countIn(z,unit));
+  const equal=gArr.every(x=>x===gArr[0]);
+  const canDeal = trayN>=v;
+  const complete = !canDeal && equal && !dv.finished;
+
+  // ロック：いまのくらい以外はうごかせない
+  document.querySelectorAll("#pDiv .blk").forEach(b=>{
+    const isCurrent = b.classList.contains(unit);
+    b.classList.toggle("locked", dv.finished || !isCurrent);
+  });
+
+  // グループの個数表示
+  gzs.forEach((z,k)=>{
+    const cnt=z.parentElement.querySelector(".g-count");
+    const parts=dv.units.map(u=>{ const n=countIn(z,u); return n>0?`${UNIT_LABEL[u]}×${n}`:null; }).filter(Boolean);
+    cnt.textContent = parts.length? parts.join("　") : "まだ 0こ";
+  });
+
+  // トレイ表示
+  const trayParts=dv.units.map(u=>{ const n=countIn(tray,u); return n>0?`${UNIT_LABEL[u]}×${n}`:null; }).filter(Boolean);
+  $("trayLabel").textContent = "くばる前の おきば　" + (trayParts.length? "のこり：" + trayParts.join("　") : "のこり：0こ");
+  tray.classList.toggle("dense", tray.querySelectorAll(".blk").length>26);
+  gzs.forEach(z=>z.classList.toggle("dense", z.querySelectorAll(".blk").length>12));
+
+  // ガイド・ボタン
+  const dealBtn=$("dDeal"), phBtn=$("dPhase");
+  let guide="";
+  if(dv.finished){
+    guide = dv.M.r>0
+      ? `かんせい！ 1人分は ${M.q}こ。くばれずに のこった ${M.r}こが「あまり」だよ。`
+      : `かんせい！ 1人分は ${M.q}こ。ぴったり 分けられたね！`;
+    dealBtn.style.display="none"; phBtn.style.display="none";
+  }else if(complete){
+    const per=gArr[0];
+    if(p<dv.M.L-1){
+      if(trayN>0){
+        guide = per>0
+          ? `${UNIT_LABEL[unit]}は 1人 ${per}こずつ くばれたね！ のこりの ${trayN}こは みんなに くばれないから、「ばらす」を おそう。`
+          : `${UNIT_LABEL[unit]}（${trayN}こ）は ${v}人に くばれないね。「ばらす」を おして 小さくしよう。`;
+        phBtn.textContent="🔨 ばらす";
+      }else{
+        guide = per>0
+          ? `${UNIT_LABEL[unit]}は 1人 ${per}こずつ、のこりなく くばれた！「つぎへ」を おそう。`
+          : `${UNIT_LABEL[unit]}は 0こ。商の このくらいは 0 だよ。「つぎへ」を おそう。`;
+        phBtn.textContent="➡ つぎへ";
+      }
+      phBtn.style.display="inline-block"; dealBtn.style.display="none";
+    }else{
+      guide = `${UNIT_LABEL[unit]}も くばりおわり！「できあがり」を おそう。`;
+      phBtn.textContent="🎉 できあがり"; phBtn.style.display="inline-block"; dealBtn.style.display="none";
+    }
+  }else if(!canDeal && !equal){
+    guide = `みんな おなじ数に なってるかな？ 多い人の ${UNIT_LABEL[unit]}を 少ない人へ ドラッグして うごかそう。`;
+    dealBtn.style.display="none"; phBtn.style.display="none";
+  }else{
+    guide = `${UNIT_LABEL[unit]}を ドラッグして、${v}人に 1こずつ じゅんばんに くばろう！（おきばに のこり ${trayN}こ）　※いそぐときは ⚡ボタンでも くばれるよ`;
+    dealBtn.style.display="inline-block"; phBtn.style.display="none";
+  }
+  $("dGuide").textContent=guide;
+
+  // 筆算：おわった くらいまで 表示
+  const revealPlace = complete||dv.finished ? p : p-1;
+  $("dHissan").textContent = revealPlace<0 && dv.brought<1
+    ? "  "+" ".repeat(M.L)+"\n"+v+")"+M.ds.join("")
+    : divHissanTxt(M,v,Math.max(revealPlace, dv.phase-1),dv.brought);
+
+  // あまり表示
+  const trayBox=tray.parentElement;
+  trayBox.classList.toggle("amari", dv.finished && M.r>0);
+  const ab=$("dAns");
+  if(dv.finished){
+    ab.style.display="block";
+    ab.textContent=`こたえ： ${dv.d} ÷ ${dv.v} = ${M.q}`+(M.r>0?` あまり ${M.r}`:"")+" 🎉";
+  }
+}
+
+/* フェーズボタン（ばらす／つぎへ／できあがり） */
+$("dPhase").addEventListener("click",()=>{
+  const p=dv.phase, unit=dv.units[p], tray=$("tray");
+  if(p<dv.M.L-1){
+    const left=countIn(tray,unit);
+    // のこりを ばらして 下のくらいに
+    tray.querySelectorAll("."+unit).forEach(b=>b.remove());
+    addBlks(tray, dv.units[p+1], left*10);
+    dv.brought=p+1;
+    dv.phase=p+1;
+  }else{
+    dv.finished=true;
+  }
+  divUpdate();
+});
+
+/* ⚡1周くばる */
+$("dDeal").addEventListener("click",()=>{
+  const unit=dv.units[dv.phase], tray=$("tray");
+  if(countIn(tray,unit)<dv.v) return;
+  groupZones().forEach(z=>{
+    const b=tray.querySelector("."+unit);
+    if(b) z.appendChild(b);
+  });
+  divUpdate();
+});
+
+$("dReset").addEventListener("click",()=>divSet(dv.d,dv.v));
+$("dGo").addEventListener("click",()=>divSet(+$("dD").value,+$("dV").value));
+document.querySelectorAll("[data-dd]").forEach(b=>b.addEventListener("click",()=>divSet(+b.dataset.dd,+b.dataset.dv)));
+
+/* ---------- ドラッグ（マウス・タッチ両対応） ---------- */
+let drag=null;
+document.getElementById("pDiv").addEventListener("pointerdown",(e)=>{
+  const el=e.target.closest(".blk");
+  if(!el || drag) return;
+  if(el.classList.contains("locked")){
+    if(!dv.finished){
+      $("dGuide").textContent="まずは いま くばっている「"+UNIT_LABEL[dv.units[dv.phase]]+"」から うごかそう！";
+    }
+    return;
+  }
+  e.preventDefault();
+  const r=el.getBoundingClientRect();
+  const clone=el.cloneNode(true);
+  clone.classList.add("drag-clone");
+  clone.classList.remove("ghost","locked");
+  clone.style.width=r.width+"px";
+  clone.style.height=r.height+"px";
+  document.body.appendChild(clone);
+  drag={el,clone,dx:e.clientX-r.left,dy:e.clientY-r.top,over:null};
+  el.classList.add("ghost");
+  positionClone(e);
+  window.addEventListener("pointermove",onDragMove);
+  window.addEventListener("pointerup",onDragUp,{once:true});
+  window.addEventListener("pointercancel",onDragUp,{once:true});
+});
+function positionClone(e){
+  drag.clone.style.left=(e.clientX-drag.dx)+"px";
+  drag.clone.style.top=(e.clientY-drag.dy)+"px";
+}
+function zoneAt(x,y){
+  const el=document.elementFromPoint(x,y);
+  if(!el) return null;
+  const z=el.closest("[data-zone]");
+  return z;
+}
+function onDragMove(e){
+  positionClone(e);
+  const z=zoneAt(e.clientX,e.clientY);
+  if(drag.over && drag.over!==z) drag.over.classList.remove("over");
+  if(z && z!==drag.el.parentElement){ z.classList.add("over"); }
+  drag.over=z;
+}
+function onDragUp(e){
+  window.removeEventListener("pointermove",onDragMove);
+  const z=zoneAt(e.clientX,e.clientY);
+  document.querySelectorAll(".blocks.over").forEach(x=>x.classList.remove("over"));
+  drag.el.classList.remove("ghost");
+  if(z && z!==drag.el.parentElement){ z.appendChild(drag.el); }
+  drag.clone.remove();
+  drag=null;
+  divUpdate();
+}
+
+/* ---------- 問題づくり（共通） ---------- */
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+function makeProblem(type){
+  if(type==="mix2") type=["m1","m2","d0","d1"][ri(0,3)];
+  if(type==="mix3") type=["m3","m4","d2","d3"][ri(0,3)];
+  if(type==="m1"){ const a=ri(12,99), b=ri(2,9); return {kind:"m",a,b,text:`${a} × ${b} =`,ansText:String(a*b)}; }
+  if(type==="m2"){ const a=ri(12,99), b=ri(12,99); return {kind:"m",a,b,text:`${a} × ${b} =`,ansText:String(a*b)}; }
+  if(type==="m3"){ const a=ri(112,987), b=ri(2,9); return {kind:"m",a,b,text:`${a} × ${b} =`,ansText:String(a*b)}; }
+  if(type==="m4"){ const a=ri(112,987), b=ri(12,99); return {kind:"m",a,b,text:`${a} × ${b} =`,ansText:String(a*b)}; }
+  if(type==="d0"){ const v=ri(2,9); const qmin=Math.max(3,Math.ceil(10/v)), qmax=Math.floor(99/v);
+    const q=ri(qmin,qmax), d=q*v; return {kind:"d",d,v,q,r:0,text:`${d} ÷ ${v} =`,ansText:String(q)}; }
+  if(type==="d1"){ const v=ri(2,9); const q=ri(3,Math.floor(96/v)), r=ri(1,v-1); let d=q*v+r;
+    if(d<10) d=v*3+1;
+    return {kind:"d",d,v,q:Math.floor(d/v),r:d%v,text:`${d} ÷ ${v} =`,ansText:`${Math.floor(d/v)} あまり ${d%v}`}; }
+  if(type==="d2"){ const v=ri(2,9); const qmin=Math.ceil(100/v), qmax=Math.floor(999/v);
+    const q=ri(qmin,qmax), d=q*v; return {kind:"d",d,v,q,r:0,text:`${d} ÷ ${v} =`,ansText:String(q)}; }
+  const v=ri(2,9); const q=ri(Math.ceil(100/v),Math.floor(990/v)), r=ri(1,v-1); const d=q*v+r;
+  return {kind:"d",d,v,q,r,text:`${d} ÷ ${v} =`,ansText:`${q} あまり ${r}`};
+}
+
+/* ---------- れんしゅう ---------- */
+let prCur=null, prGood=0;
+function prShowStars(){ $("prStars").textContent = prGood>0 ? "せいかい " + "⭐".repeat(Math.min(prGood,10)) + " " + prGood + "問！" : ""; }
+$("prNew").addEventListener("click",()=>{
+  prCur=makeProblem($("prType").value);
+  $("prQ").textContent=prCur.text.replace(" =","");
+  $("prAnsRow").style.display="flex";
+  $("prAmariWrap").style.display = prCur.kind==="d" ? "inline" : "none";
+  $("prA1").value=""; $("prA2").value="0";
+  $("prFb").textContent=""; $("prFb").className="feedback";
+  $("prA1").focus();
+});
+$("prCheck").addEventListener("click",()=>{
+  if(!prCur) return;
+  const a1=+$("prA1").value;
+  let ok=false;
+  if(prCur.kind==="m") ok = (a1===prCur.a*prCur.b);
+  else ok = (a1===prCur.q && (+$("prA2").value||0)===prCur.r);
+  const fb=$("prFb");
+  if(ok){ prGood++; fb.textContent="🎉 せいかい！すごい！"; fb.className="feedback good"; }
+  else { fb.textContent="おしい！もういちど かんがえてみよう（「図で やってみる」も つかってね）"; fb.className="feedback retry"; }
+  prShowStars();
+});
+$("prShow").addEventListener("click",()=>{
+  if(!prCur) return;
+  if(prCur.kind==="m"){
+    multSet(prCur.a, prCur.b);
+    document.querySelector('[data-p="pMult"]').click();
+  }else{
+    divSet(prCur.d, prCur.v);
+    document.querySelector('[data-p="pDiv"]').click();
+  }
+});
+
+/* ---------- プリント ---------- */
+$("ppMake").addEventListener("click",()=>{
+  const type=$("ppType").value, n=+$("ppCount").value;
+  const qs=[]; const seen=new Set();
+  let guard=0;
+  while(qs.length<n && guard<800){
+    guard++;
+    const p=makeProblem(type);
+    if(seen.has(p.text)) continue;
+    seen.add(p.text); qs.push(p);
+  }
+  const names={
+    m1:"かけ算（2けた×1けた）",m2:"かけ算（2けた×2けた）",
+    m3:"かけ算（3けた×1けた）",m4:"かけ算（3けた×2けた）",
+    d0:"わり算 2けた÷1けた（わりきれる）",d1:"わり算 2けた÷1けた（あまりあり）",
+    d2:"わり算 3けた÷1けた（わりきれる）",d3:"わり算 3けた÷1けた（あまりあり）",
+    mix2:"2けた ミックス",mix3:"3けた ミックス"
+  };
+  let html=`<div class="p-sheet">
+    <div class="p-head"><h2>けいさん れんしゅうプリント：${names[type]}</h2>
+    <div class="p-meta">なまえ <span class="p-blank"></span>　　月　　日　　せいかい <span class="p-blank" style="min-width:12mm"></span> / ${n}問</div></div>
+    <div class="p-grid">`;
+  qs.forEach((p,i)=>{
+    html+=`<div class="p-q"><span class="p-no">${i+1}.</span>${p.text}<div class="p-work"></div></div>`;
+  });
+  html+=`</div></div>
+  <div class="p-sheet p-break">
+    <div class="p-head"><h2>こたえ：${names[type]}</h2></div>
+    <div class="p-ans">`;
+  qs.forEach((p,i)=>{ html+=`<div>${i+1}.　${p.text} <b>${p.ansText}</b></div>`; });
+  html+=`</div></div>`;
+  $("printArea").innerHTML=html;
+  setTimeout(()=>window.print(),150);
+});
+
+/* ---------- 初期表示 ---------- */
+multRender();
+divSet(72,3);
+</script>
+</body>
+</html>
