@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>がんばりチャレンジ！</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ten:#F5A623; --ten-light:#FFF3DC;
+    --one:#3FA7D6; --one-light:#E4F4FB;
+    --green:#5BAE6C; --green-light:#EAF6EC;
+    --pink:#EF6F8C;
+    --ink:#3A3A3A; --line:#C9C9C9; --bg:#FDF6EC;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--ink);
+    font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif; }
+  .app{ max-width:640px; margin:0 auto; padding:12px 12px 60px; }
+  header{ text-align:center; margin-bottom:10px; }
+  header h1{ font-size:22px; font-weight:900; letter-spacing:.04em; }
+  header h1 .star{ color:var(--ten); }
+  .date-line{ font-size:13px; font-weight:700; color:#8a7a55; }
+
+  .tabs{ display:flex; gap:6px; margin-bottom:12px; }
+  .tab-btn{ flex:1; border:2px solid var(--line); background:#fff; border-radius:14px;
+    padding:11px 4px; font-family:inherit; font-size:14.5px; font-weight:900; cursor:pointer; color:#888; }
+  .tab-btn.active{ border-color:var(--ten); background:var(--ten-light); color:#B4770A; }
+  .panel{ display:none; }
+  .panel.active{ display:block; }
+
+  /* パズル */
+  .puzzle-card{ background:#fff; border:2px solid #E5DCC8; border-radius:16px; padding:12px; margin-bottom:12px; }
+  .progress-line{ text-align:center; font-size:17px; font-weight:900; margin-bottom:8px; color:#B4770A; }
+  .puzzle-wrap{ position:relative; border-radius:12px; overflow:hidden; border:2px solid var(--line); }
+  .puzzle-wrap img, .puzzle-wrap svg{ display:block; width:100%; height:auto; }
+  .cover-grid{ position:absolute; inset:0; display:grid; }
+  .cover{ background:linear-gradient(135deg,#FFD98E,#F5A623); border:1px solid rgba(255,255,255,.7);
+    display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:900; color:#fff;
+    transition:opacity .5s, transform .5s; }
+  .cover.open{ opacity:0; transform:scale(1.25); pointer-events:none; }
+
+  /* タスク */
+  .time-head{ font-size:14.5px; font-weight:900; margin:14px 0 6px; padding:4px 10px; border-radius:8px; display:inline-block; }
+  .th-asa{ background:var(--ten-light); color:#B4770A; }
+  .th-hiru{ background:var(--one-light); color:#1D7FAD; }
+  .th-yoru{ background:#EDEFFA; color:#4553A8; }
+  .task{ width:100%; display:flex; align-items:center; gap:12px; background:#fff; border:2px solid var(--line);
+    border-radius:14px; padding:13px 14px; margin-bottom:8px; font-family:inherit; font-size:16.5px; font-weight:700;
+    cursor:pointer; text-align:left; }
+  .task .mark{ width:34px; height:34px; border-radius:50%; border:2.5px solid var(--line); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:19px; color:#fff; }
+  .task.done{ background:var(--green-light); border-color:var(--green); }
+  .task.done .mark{ background:var(--green); border-color:var(--green); }
+  .task.done .t-label{ text-decoration:line-through; color:#6a9a76; }
+
+  /* おいわい */
+  .celebrate{ position:fixed; inset:0; background:rgba(255,250,235,.96); display:none;
+    align-items:center; justify-content:center; z-index:50; text-align:center; padding:20px; }
+  .celebrate.show{ display:flex; }
+  .celebrate .box{ animation:pop .6s; }
+  .celebrate h2{ font-size:30px; font-weight:900; color:#B4770A; margin-bottom:8px; }
+  .celebrate p{ font-size:16px; font-weight:700; margin-bottom:16px; }
+  .celebrate .emoji{ font-size:64px; }
+  @keyframes pop{ 0%{ transform:scale(.5); opacity:0; } 70%{ transform:scale(1.1); } 100%{ transform:scale(1); } }
+  .btn{ font-family:inherit; font-size:15px; font-weight:900; padding:12px 20px; border-radius:14px;
+    border:2px solid var(--ink); background:#fff; cursor:pointer; }
+  .btn.primary{ background:var(--ten); border-color:var(--ten); color:#fff; }
+  .btn.small{ font-size:12.5px; padding:7px 12px; }
+  .btn.danger{ border-color:#C24E4B; color:#C24E4B; }
+
+  /* コレクション */
+  .gallery{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+  .g-item{ background:#fff; border:2px solid #E5DCC8; border-radius:12px; padding:6px; }
+  .g-item img,.g-item svg{ width:100%; border-radius:8px; display:block; }
+  .g-item .g-date{ font-size:12px; font-weight:900; text-align:center; color:#8a7a55; margin-top:4px; }
+  .empty-note{ text-align:center; color:#999; font-weight:700; padding:30px 10px; line-height:1.9; }
+  .streak-line{ text-align:center; font-size:16px; font-weight:900; color:#B4770A; margin-bottom:12px; }
+
+  /* 設定 */
+  .settings-gate{ text-align:center; margin-top:18px; }
+  .set-card{ background:#fff; border:2px solid #E5DCC8; border-radius:14px; padding:14px; margin-bottom:12px; }
+  .set-card h3{ font-size:15.5px; font-weight:900; margin-bottom:10px; color:#8a7a55; }
+  .t-row{ display:flex; gap:6px; align-items:center; margin-bottom:6px; }
+  .t-row input[type=text]{ flex:1; font-family:inherit; font-size:14px; font-weight:700; padding:8px; border:2px solid var(--line); border-radius:10px; min-width:0; }
+  .t-row select{ font-family:inherit; font-size:13px; font-weight:700; padding:8px 4px; border:2px solid var(--line); border-radius:10px; }
+  .pic-options{ display:flex; gap:8px; flex-wrap:wrap; }
+  .pic-opt{ width:110px; border:3px solid transparent; border-radius:10px; overflow:hidden; cursor:pointer; background:#fff; padding:0; }
+  .pic-opt.selected{ border-color:var(--ten); }
+  .pic-opt svg{ display:block; width:100%; height:auto; }
+  .note{ font-size:12px; color:#999; font-weight:700; line-height:1.7; margin-top:6px; }
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1><span class="star">★</span> がんばりチャレンジ！ <span class="star">★</span></h1>
+    <div class="date-line" id="dateLine"></div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-p="pToday">きょうの チャレンジ</button>
+    <button class="tab-btn" data-p="pGallery">コレクション</button>
+  </div>
+
+  <!-- きょう -->
+  <div class="panel active" id="pToday">
+    <div class="puzzle-card">
+      <div class="progress-line" id="progressLine"></div>
+      <div class="puzzle-wrap" id="puzzleWrap"></div>
+    </div>
+    <div id="taskList"></div>
+    <div class="settings-gate">
+      <button class="btn small" id="openSettings">⚙ おうちの人メニュー</button>
+    </div>
+    <div id="settingsArea" class="hidden">
+      <div class="set-card">
+        <h3>📝 タスクを へんしゅう</h3>
+        <div id="taskEditor"></div>
+        <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap">
+          <button class="btn small" id="addTask">＋ タスクを ふやす</button>
+          <button class="btn small primary" id="saveTasks">💾 ほぞんする</button>
+        </div>
+      </div>
+      <div class="set-card">
+        <h3>🖼 かんせいする 絵を えらぶ</h3>
+        <div class="pic-options" id="picOptions"></div>
+        <div style="margin-top:10px">
+          <label class="btn small" style="display:inline-block">📷 すきな写真にする<input type="file" id="picUpload" accept="image/*" class="hidden"></label>
+          <span id="customBadge" class="note"></span>
+        </div>
+        <div class="note">写真はこのタブレットの中にだけ保存されます。</div>
+      </div>
+      <div class="set-card">
+        <h3>🔧 その他</h3>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <button class="btn small" id="resetToday">きょうを やりなおす</button>
+          <button class="btn small danger" id="resetAll">ぜんぶ リセット（データ削除）</button>
+        </div>
+      </div>
+      <div class="settings-gate">
+        <button class="btn small" id="closeSettings">とじる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- コレクション -->
+  <div class="panel" id="pGallery">
+    <div class="streak-line" id="streakLine"></div>
+    <div class="gallery" id="gallery"></div>
+    <div class="empty-note hidden" id="emptyNote">まだ かんせいした絵は ないよ。<br>きょうの チャレンジを クリアして<br>1まいめの 絵を かんせいさせよう！</div>
+  </div>
+</div>
+
+<!-- おいわい -->
+<div class="celebrate" id="celebrate">
+  <div class="box">
+    <div class="emoji">🎉🏆🎉</div>
+    <h2>ぜんぶ できた！</h2>
+    <p>絵が かんせいしたよ！<br>コレクションに ほぞんされました。<br>きょうも 1日 よく がんばりました！</p>
+    <button class="btn primary" id="closeCelebrate">やったー！</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $=(id)=>document.getElementById(id);
+
+/* ---------- 保存（localStorage / だめなら一時メモリ） ---------- */
+const mem={};
+const store={
+  get(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):(mem[k]??null); }catch(e){ return mem[k]??null; } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} mem[k]=v; },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} delete mem[k]; }
+};
+
+/* ---------- 日付・乱数 ---------- */
+function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function dateJp(){ const d=new Date(); const w="日月火水木金土"[d.getDay()]; return `${d.getMonth()+1}月${d.getDate()}日（${w}）`; }
+function seedFrom(s){ let h=0; for(const c of s) h=(h*31+c.charCodeAt(0))>>>0; return h||1; }
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function shuffledIdx(n,seed){ const arr=[...Array(n).keys()]; const rnd=mulberry32(seed); for(let i=n-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); const t=arr[i]; arr[i]=arr[j]; arr[j]=t; } return arr; }
+
+/* ---------- プリセットの絵（SVG） ---------- */
+const PRESETS={
+  cake:`<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="400" height="300" fill="#FFF0F5"/>
+    <ellipse cx="200" cy="262" rx="150" ry="18" fill="#F3C6D8"/>
+    <rect x="80" y="170" width="240" height="90" rx="14" fill="#FBD9A0"/>
+    <rect x="80" y="170" width="240" height="26" rx="13" fill="#FFF6E3"/>
+    <rect x="110" y="110" width="180" height="70" rx="12" fill="#F8A8C0"/>
+    <rect x="110" y="110" width="180" height="22" rx="11" fill="#FFF6E3"/>
+    <circle cx="200" cy="88" r="22" fill="#E2574C"/>
+    <path d="M200 66 q6 -14 16 -10" stroke="#5BAE6C" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <circle cx="140" cy="150" r="9" fill="#E2574C"/><circle cx="200" cy="155" r="9" fill="#E2574C"/><circle cx="260" cy="150" r="9" fill="#E2574C"/>
+    <circle cx="120" cy="215" r="10" fill="#F8A8C0"/><circle cx="170" cy="222" r="10" fill="#F8A8C0"/><circle cx="230" cy="222" r="10" fill="#F8A8C0"/><circle cx="280" cy="215" r="10" fill="#F8A8C0"/>
+    <text x="200" y="45" text-anchor="middle" font-size="24" font-weight="bold" fill="#C05A7E" font-family="sans-serif">SWEET CAKE</text>
+  </svg>`,
+  rainbow:`<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="400" height="300" fill="#DFF3FB"/>
+    <circle cx="330" cy="60" r="34" fill="#FFD24C"/>
+    <g fill="none" stroke-linecap="round">
+      <path d="M60 260 a140 140 0 0 1 280 0" stroke="#E2574C" stroke-width="16"/>
+      <path d="M78 260 a122 122 0 0 1 244 0" stroke="#F5A623" stroke-width="16"/>
+      <path d="M96 260 a104 104 0 0 1 208 0" stroke="#FFD24C" stroke-width="16"/>
+      <path d="M114 260 a86 86 0 0 1 172 0" stroke="#5BAE6C" stroke-width="16"/>
+      <path d="M132 260 a68 68 0 0 1 136 0" stroke="#3FA7D6" stroke-width="16"/>
+      <path d="M150 260 a50 50 0 0 1 100 0" stroke="#8A6FBF" stroke-width="16"/>
+    </g>
+    <ellipse cx="75" cy="255" rx="55" ry="22" fill="#fff"/>
+    <ellipse cx="325" cy="255" rx="55" ry="22" fill="#fff"/>
+    <ellipse cx="115" cy="90" rx="34" ry="16" fill="#fff"/>
+    <ellipse cx="145" cy="80" rx="26" ry="13" fill="#fff"/>
+  </svg>`,
+  cat:`<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+    <rect width="400" height="300" fill="#FFF7E0"/>
+    <path d="M120 110 L100 40 L165 85 Z" fill="#F5A623"/>
+    <path d="M280 110 L300 40 L235 85 Z" fill="#F5A623"/>
+    <path d="M128 104 L116 62 L158 90 Z" fill="#F8C8DC"/>
+    <path d="M272 104 L284 62 L242 90 Z" fill="#F8C8DC"/>
+    <ellipse cx="200" cy="170" rx="120" ry="105" fill="#F5A623"/>
+    <ellipse cx="200" cy="205" rx="70" ry="55" fill="#FFF6E3"/>
+    <circle cx="158" cy="150" r="14" fill="#3A3A3A"/><circle cx="242" cy="150" r="14" fill="#3A3A3A"/>
+    <circle cx="163" cy="145" r="5" fill="#fff"/><circle cx="247" cy="145" r="5" fill="#fff"/>
+    <path d="M190 185 q10 10 20 0 l-10 12 Z" fill="#E2574C"/>
+    <path d="M200 197 q-14 18 -30 8 M200 197 q14 18 30 8" stroke="#3A3A3A" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <g stroke="#C7860F" stroke-width="4" stroke-linecap="round">
+      <path d="M95 165 L45 155 M95 185 L45 190 M305 165 L355 155 M305 185 L355 190"/>
+    </g>
+  </svg>`
+};
+const PRESET_NAMES={cake:"ケーキ", rainbow:"にじ", cat:"ねこ"};
+
+/* ---------- 初期タスク（夏休み生活がんばり表より） ---------- */
+const DEFAULT_TASKS=[
+  {id:"t1", time:"asa", label:"きめた時間に おきた"},
+  {id:"t2", time:"asa", label:"あさごはんを 食べた"},
+  {id:"t3", time:"asa", label:"あさ、トイレに 行った"},
+  {id:"t4", time:"asa", label:"はみがき・かおを あらった"},
+  {id:"t5", time:"asa", label:"きがえた"},
+  {id:"t6", time:"asa", label:"キッズの もちものを じゅんびした"},
+  {id:"t7", time:"hiru", label:"かだいプリントを した"},
+  {id:"t8", time:"hiru", label:"じゆうかだいを した"},
+  {id:"t9", time:"hiru", label:"かんじ・けいさんスキルを 1ページ した"},
+  {id:"t10", time:"hiru", label:"おてつだいを した"},
+  {id:"t11", time:"hiru", label:"外で うんどうを した"},
+  {id:"t12", time:"yoru", label:"ゆうごはんを 食べた"},
+  {id:"t13", time:"yoru", label:"ゆうごはんの あとに トイレに 行った"},
+  {id:"t14", time:"yoru", label:"おふろに 入った"},
+  {id:"t15", time:"yoru", label:"あしたの キッズの じゅんびを した"},
+  {id:"t16", time:"yoru", label:"きめた時間に ねる じゅんびが できた"}
+];
+
+/* ---------- 状態 ---------- */
+let tasks = store.get("gt_tasks") || DEFAULT_TASKS.map(t=>({...t}));
+let stt = store.get("gt_state");
+if(!stt || stt.date!==todayStr()) stt={date:todayStr(), done:[], archived:false};
+let imgSel = store.get("gt_image") || {type:"preset", id:"cake"};
+let gallery = store.get("gt_gallery") || [];
+
+function save(){ store.set("gt_tasks",tasks); store.set("gt_state",stt); store.set("gt_image",imgSel); store.set("gt_gallery",gallery); }
+
+/* ---------- タブ ---------- */
+document.querySelectorAll(".tab-btn").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll(".tab-btn").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active"); $(b.dataset.p).classList.add("active");
+    renderAll();
+  });
+});
+
+/* ---------- パズル描画 ---------- */
+function currentImageHtml(sel){
+  if(sel.type==="custom") return `<img src="${sel.data}" alt="">`;
+  return PRESETS[sel.id]||PRESETS.cake;
+}
+function renderPuzzle(){
+  const n=tasks.length;
+  const doneN=stt.done.filter(id=>tasks.some(t=>t.id===id)).length;
+  const cols=Math.ceil(Math.sqrt(n)), rows=Math.ceil(n/cols);
+  const wrap=$("puzzleWrap");
+  wrap.innerHTML=currentImageHtml(imgSel);
+  const grid=document.createElement("div");
+  grid.className="cover-grid";
+  grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  grid.style.gridTemplateRows=`repeat(${rows},1fr)`;
+  const order=shuffledIdx(rows*cols, seedFrom(stt.date));
+  const openSet=new Set(order.filter(i=>i<n).slice(0,doneN));
+  // タスク数よりマスが多いぶんは最初から開けておく
+  const extra=order.filter(i=>i>=n);
+  extra.forEach(i=>openSet.add(i));
+  for(let i=0;i<rows*cols;i++){
+    const c=document.createElement("div");
+    c.className="cover"+(openSet.has(i)?" open":"");
+    c.textContent = openSet.has(i)?"":"？";
+    grid.appendChild(c);
+  }
+  wrap.appendChild(grid);
+  const left=n-doneN;
+  $("progressLine").textContent = left===0
+    ? "🎉 かんせい！ きょうも よくがんばりました！"
+    : `あと ${left} ピースで 絵が かんせい！（${doneN} / ${n}）`;
+}
+
+/* ---------- タスク描画 ---------- */
+const TIME_INFO={asa:["🌅 あさ","th-asa"], hiru:["☀ ひる","th-hiru"], yoru:["🌙 よる","th-yoru"]};
+function renderTasks(){
+  const list=$("taskList"); list.innerHTML="";
+  ["asa","hiru","yoru"].forEach(tm=>{
+    const items=tasks.filter(t=>t.time===tm);
+    if(!items.length) return;
+    const h=document.createElement("div"); h.className="time-head "+TIME_INFO[tm][1]; h.textContent=TIME_INFO[tm][0];
+    list.appendChild(h);
+    items.forEach(t=>{
+      const done=stt.done.includes(t.id);
+      const btn=document.createElement("button");
+      btn.className="task"+(done?" done":"");
+      btn.innerHTML=`<span class="mark">${done?"✓":""}</span><span class="t-label">${t.label}</span>`;
+      btn.addEventListener("click",()=>toggleTask(t.id));
+      list.appendChild(btn);
+    });
+  });
+}
+function toggleTask(id){
+  const i=stt.done.indexOf(id);
+  if(i>=0) stt.done.splice(i,1);
+  else stt.done.push(id);
+  const allDone = tasks.length>0 && tasks.every(t=>stt.done.includes(t.id));
+  if(allDone && !stt.archived){
+    stt.archived=true;
+    archiveToday(()=>{ save(); renderAll(); $("celebrate").classList.add("show"); });
+  }else{
+    save(); renderAll();
+  }
+}
+
+/* ---------- コレクション ---------- */
+function archiveToday(cb){
+  if(imgSel.type==="preset"){
+    gallery.unshift({date:stt.date, type:"preset", id:imgSel.id});
+    if(gallery.length>90) gallery.pop();
+    cb();
+  }else{
+    const im=new Image();
+    im.onload=()=>{
+      const c=document.createElement("canvas");
+      const sc=Math.min(1, 320/im.width);
+      c.width=Math.round(im.width*sc); c.height=Math.round(im.height*sc);
+      c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+      let data;
+      try{ data=c.toDataURL("image/jpeg",0.8); }catch(e){ data=null; }
+      gallery.unshift(data?{date:stt.date,type:"custom",data}:{date:stt.date,type:"preset",id:"cake"});
+      if(gallery.length>90) gallery.pop();
+      cb();
+    };
+    im.onerror=()=>{ gallery.unshift({date:stt.date,type:"preset",id:"cake"}); cb(); };
+    im.src=imgSel.data;
+  }
+}
+function renderGallery(){
+  const g=$("gallery"); g.innerHTML="";
+  $("emptyNote").classList.toggle("hidden", gallery.length>0);
+  $("streakLine").textContent = gallery.length>0 ? `🏆 かんせいした絵： ${gallery.length}まい！` : "";
+  gallery.forEach(item=>{
+    const d=document.createElement("div"); d.className="g-item";
+    const [y,m,dd]=item.date.split("-");
+    d.innerHTML = (item.type==="custom" ? `<img src="${item.data}">` : (PRESETS[item.id]||PRESETS.cake))
+      + `<div class="g-date">${+m}月${+dd}日</div>`;
+    g.appendChild(d);
+  });
+}
+
+/* ---------- 設定 ---------- */
+$("openSettings").addEventListener("click",()=>{
+  if(confirm("おうちの人メニューを ひらきます。おうちの人と いっしょに ひらいてね。")){
+    renderTaskEditor(); renderPicOptions();
+    $("settingsArea").classList.remove("hidden");
+  }
+});
+$("closeSettings").addEventListener("click",()=>$("settingsArea").classList.add("hidden"));
+
+function renderTaskEditor(){
+  const ed=$("taskEditor"); ed.innerHTML="";
+  tasks.forEach((t,i)=>{
+    const row=document.createElement("div"); row.className="t-row";
+    row.innerHTML=`<select data-i="${i}" class="ed-time">
+        <option value="asa"${t.time==="asa"?" selected":""}>あさ</option>
+        <option value="hiru"${t.time==="hiru"?" selected":""}>ひる</option>
+        <option value="yoru"${t.time==="yoru"?" selected":""}>よる</option>
+      </select>
+      <input type="text" data-i="${i}" class="ed-label" value="${t.label.replace(/"/g,"&quot;")}">
+      <button class="btn small danger ed-del" data-i="${i}">✕</button>`;
+    ed.appendChild(row);
+  });
+  ed.querySelectorAll(".ed-del").forEach(b=>b.addEventListener("click",()=>{
+    tasks.splice(+b.dataset.i,1); renderTaskEditor();
+  }));
+}
+$("addTask").addEventListener("click",()=>{
+  tasks.push({id:"t"+Date.now(), time:"hiru", label:"あたらしい タスク"});
+  renderTaskEditor();
+});
+$("saveTasks").addEventListener("click",()=>{
+  document.querySelectorAll(".ed-time").forEach(s=>{ tasks[+s.dataset.i].time=s.value; });
+  document.querySelectorAll(".ed-label").forEach(inp=>{ tasks[+inp.dataset.i].label=inp.value||"タスク"; });
+  stt.done=stt.done.filter(id=>tasks.some(t=>t.id===id));
+  save(); renderAll();
+  alert("ほぞんしました！");
+});
+
+function renderPicOptions(){
+  const po=$("picOptions"); po.innerHTML="";
+  Object.keys(PRESETS).forEach(id=>{
+    const b=document.createElement("button");
+    b.className="pic-opt"+(imgSel.type==="preset"&&imgSel.id===id?" selected":"");
+    b.innerHTML=PRESETS[id];
+    b.title=PRESET_NAMES[id];
+    b.addEventListener("click",()=>{ imgSel={type:"preset",id}; save(); renderPicOptions(); renderPuzzle(); });
+    po.appendChild(b);
+  });
+  $("customBadge").textContent = imgSel.type==="custom" ? "（いまは アップロードした写真を つかっています）" : "";
+}
+$("picUpload").addEventListener("change",(e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  const url=URL.createObjectURL(f);
+  const im=new Image();
+  im.onload=()=>{
+    const c=document.createElement("canvas");
+    const sc=Math.min(1, 900/im.width);
+    c.width=Math.round(im.width*sc); c.height=Math.round(im.height*sc);
+    c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+    try{
+      imgSel={type:"custom", data:c.toDataURL("image/jpeg",0.85)};
+      save();
+    }catch(err){ alert("この写真は つかえませんでした。べつの写真を ためしてね。"); }
+    URL.revokeObjectURL(url);
+    renderPicOptions(); renderPuzzle();
+  };
+  im.onerror=()=>{ alert("写真を よみこめませんでした。"); URL.revokeObjectURL(url); };
+  im.src=url;
+});
+
+$("resetToday").addEventListener("click",()=>{
+  if(confirm("きょうの チェックを ぜんぶ はずして やりなおしますか？")){
+    stt={date:todayStr(), done:[], archived:false}; save(); renderAll();
+  }
+});
+$("resetAll").addEventListener("click",()=>{
+  if(confirm("タスク・コレクションなど すべての データを けします。もとに もどせません。よろしいですか？")){
+    ["gt_tasks","gt_state","gt_image","gt_gallery"].forEach(k=>store.del(k));
+    tasks=DEFAULT_TASKS.map(t=>({...t}));
+    stt={date:todayStr(), done:[], archived:false};
+    imgSel={type:"preset", id:"cake"};
+    gallery=[];
+    save(); renderAll();
+  }
+});
+$("closeCelebrate").addEventListener("click",()=>$("celebrate").classList.remove("show"));
+
+/* ---------- 日またぎチェック ---------- */
+function ensureToday(){
+  if(stt.date!==todayStr()){
+    stt={date:todayStr(), done:[], archived:false};
+    save();
+  }
+}
+setInterval(()=>{ if(stt.date!==todayStr()){ ensureToday(); renderAll(); } }, 60000);
+
+/* ---------- 描画まとめ ---------- */
+function renderAll(){
+  ensureToday();
+  $("dateLine").textContent=dateJp()+" の チャレンジ";
+  renderPuzzle();
+  renderTasks();
+  renderGallery();
+}
+renderAll();
+save();
+</script>
+</body>
+</html>
